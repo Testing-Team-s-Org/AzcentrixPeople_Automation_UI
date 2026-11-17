@@ -11,13 +11,15 @@ Playwright/
 ├── pytest.ini                # pytest settings (pythonpath = project root)
 ├── requirements.txt          # Python dependencies
 ├── data/
-│   └── Legal_entities.json   # Test data for legal entity creation
+│   ├── Legal_entities.json   # Test data for legal entity creation
+│   └── Login-Credential.json # Login test data: valid credentials, invalid password, expected messages
 ├── reports/                  # Generated HTML test reports (created on first run)
 │   ├── Legal_Entities_report.html        # single test file
 │   ├── automation_report.html            # whole suite, no marker
 │   └── automation_report_smoke.html      # whole suite with -m smoke
 ├── pageobject/               # Page Object Model - one class per page
-│   ├── login.py
+│   ├── login.py              # Company login page (sign in, validation, Remember me)
+│   ├── forgot_password.py    # Reset password page
 │   ├── navigation/navigation_page.py
 │   └── legal_entities/
 │       ├── legal_entities.py          # Create / fill / submit the form
@@ -32,7 +34,7 @@ Playwright/
 
 - **Page objects** (`pageobject/`) hold the locators and actions for each screen. Tests call methods such as `signIn()` or `fill_legal_entity()` and never touch selectors directly.
 - **Test data** lives in `data/*.json`. The legal entity test reads its input from there.
-- **Credentials** are read from `.env`, never from source files.
+- **Credentials:** the legal entity test reads them from `.env`. The login tests (`tests/login/`) read them from `data/Login-Credential.json`, which also holds the invalid password and the expected validation messages.
 - **Unique entity codes:** each run appends a timestamp to the base code in the JSON (`IND` becomes e.g. `IND261117123807`), so repeated runs don't collide. The code is read back from the input box, and the verify step checks that exact value.
 
 ## Setup
@@ -132,6 +134,14 @@ def test_example(browserInstance, credentials, data_dir):
 3. `fill_legal_entity()` clicks **Add legal entity**, fills the basic information (with a timestamped code), contact, registered and corporate address, sets the default flag, picks the effective-from date (Today), and submits. It returns the code it entered.
 4. Check that the returned code starts with the JSON base code.
 5. Verify the created entity: header, overview, address, statutory registration (adds a PAN), effective information, and the activity log.
+
+## Test flow: login (`tests/login/test_login.py`)
+
+| Test | Steps |
+|---|---|
+| `test_logins` | Sign in with valid credentials, check the login worked, open **Legal Entities**. |
+| `test_login_validation_errors` | Click **Sign In** with empty fields and check each field's required message; then sign in with a wrong password and check *Invalid company or login credentials.* |
+| `test_forgot_password_and_remember_me_login` | Request a password reset, check the success message, go **Back to company login**, then sign in with **Remember me** checked. This sends a real reset email to the account on every run. |
 
 ## Adding a new test
 
