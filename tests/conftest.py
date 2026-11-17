@@ -1,0 +1,174 @@
+
+import os
+import re
+from datetime import datetime
+from pathlib import Path
+
+import pytest
+from dotenv import load_dotenv
+from pytest_metadata.plugin import metadata_key
+
+# Project root = folder that holds pytest.ini (one level above tests/)
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+REPORTS_DIR = PROJECT_ROOT / "reports"
+
+# Load secrets from <project>/.env into os.environ (no-op if the file is missing)
+load_dotenv(PROJECT_ROOT / ".env")
+
+# Filled in by pytest_configure from the command line; read by the report hooks below
+REPORT_INFO = {
+    "module": "All Modules",
+    "test_file": "All test files",
+    "browser": "chrome",
+    "marker": "",
+}
+
+
+@pytest.fixture(scope="session")
+def data_dir():
+    """Absolute path to the project's data/ folder (holds the JSON test data)."""
+    path = PROJECT_ROOT / "data"
+    assert path.is_dir(), f"data directory not found: {path}"
+    return path
+
+
+@pytest.fixture(scope="session")
+def credentials():
+    """Login credentials read from .env. Fails early if any value is missing."""
+    values = {
+        "companyCode": os.getenv("LOGIN_COMPANY_CODE"),
+        "userName": os.getenv("LOGIN_USERNAME"),
+        "password": os.getenv("LOGIN_PASSWORD"),
+    }
+    missing = [key for key, value in values.items() if not value]
+    if missing:
+        pytest.fail(f"Missing login values in .env: {', '.join(missing)}")
+    return values
+
+
+def pytest_addoption(parser):
+    parser.addoption("--browser_name",action="store", default="chrome", help="Browser selection: chrome, edge, firefox")
+
+    parser.addoption("--url_name", action="store", default="https://103.110.236.187:8822/login",help="Server URL selection")
+
+
+@pytest.fixture
+def browserInstance(playwright, request):
+
+    browser_name = request.config.getoption("--browser_name")
+    url_name = request.config.getoption("--url_name")
+
+    if browser_name == "chrome":
+        browser = playwright.chromium.launch(headless=False)
+
+    elif browser_name == "edge":
+        browser = playwright.chromium.launch(channel="msedge",headless=False)
+
+    elif browser_name == "firefox":
+        browser = playwright.firefox.launch(headless=False)
+
+    else:
+        raise ValueError(f"Unsupported browser: {browser_name}")
+
+    # Ignore SSL certificate errors
+    context = browser.new_context(ignore_https_errors=True)
+
+    page = context.new_page()
+
+    page.goto(url_name)
+
+    yield page
+
+    context.close()
+    browser.close()
+
+
+# ----------------------------------------------------------------------
+# Report naming and labels - derived from what was asked to run
+# ----------------------------------------------------------------------
+
+def _label(name):
+    """'Legal_Entities' -> 'Legal Entities'."""
+    return name.replace("_", " ").replace("-", " ").strip().title()
+
+
+def _resolve_report(config):
+    """Work out module label, test-file label and report file name.
+
+    - one test file  -> reports/<File_Name>[_<marker>]_report.html
+    - one folder     -> reports/<folder>[_<marker>]_report.html
+    - anything else  -> reports/automation_report[_<marker>].html  (overall)
+    """
+    marker = config.option.markexpr or ""
+    suffix = f"_{re.sub(r'[^A-Za-z0-9]+', '_', marker).strip('_')}" if marker else ""
+
+    args = [arg.split("::")[0] for arg in config.args]
+    if len(args) == 1:
+        target = Path(args[0])
+        if not target.is_absolute():
+            target = Path(config.invocation_params.dir) / target
+
+        if target.is_file() and target.suffix == ".py":
+            short = target.stem[5:] if target.stem.startswith("test_") else target.stem
+            return {
+                "module": _label(short),
+                "test_file": target.name,
+                "report": f"{short}{suffix}_report.html",
+            }
+
+        if target.is_dir() and target.resolve() != (PROJECT_ROOT / "tests").resolve():
+            return {
+                "module": _label(target.name),
+                "test_file": f"{target.name}/ (folder)",
+                "report": f"{target.name}{suffix}_report.html",
+            }
+
+    return {
+        "module": "All Modules",
+        "test_file": "All test files",
+        "report": f"automation_report{suffix}.html",
+    }
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_configure(config):
+    info = _resolve_report(config)
+    REPORT_INFO.update(
+        module=info["module"],
+        test_file=info["test_file"],
+        browser=config.getoption("--browser_name"),
+        marker=config.option.markexpr or "",
+    )
+
+    # Only pick the file name automatically when --html was not given on the command line
+    if not config.option.htmlpath:
+        config.option.htmlpath = str(REPORTS_DIR / info["report"])
+
+
+def pytest_sessionstart(session):
+    # Metadata shows in the report's Environment table
+    session.config.stash[metadata_key].update({
+        "Project": "Legal Entities Automation",
+        "Module": REPORT_INFO["module"],
+        "Test File": REPORT_INFO["test_file"],
+        "Browser": REPORT_INFO["browser"],
+        "Marker": REPORT_INFO["marker"] or "none",
+        "Framework": "Python + Playwright + Pytest",
+        "Environment": "QA",
+        "Executed By": "Automation Team",
+    })
+
+
+def pytest_html_report_title(report):
+    report.title = f"{REPORT_INFO['module']} Test Report"
+
+
+def pytest_html_results_summary(prefix, summary, postfix):
+    execution_date = datetime.now().strftime("%d-%m-%Y %I:%M %p")
+
+    prefix.extend([
+        f"<p><strong>Execution:</strong> {execution_date}</p>",
+        f"<p><strong>Module:</strong> {REPORT_INFO['module']}</p>",
+        f"<p><strong>Test file:</strong> {REPORT_INFO['test_file']}</p>",
+        f"<p><strong>Browser:</strong> {REPORT_INFO['browser']}</p>",
+    ])

@@ -1,0 +1,48 @@
+
+{
+  "legal_entities": [
+    {
+      "test_case": "TC_LE_001",
+      "description": "Create legal entity with valid details",
+      "basic_information": {
+        "entity_code": "IND",
+        "entity_name": "ABC Technologies Private Limited",
+        "short_name": "ABC Tech",
+        "registration_number": "REG123456",
+        "country": "IN",
+        "currency": "INR"
+      },
+      "contact_information": {
+        "official_email": "info@abctech.com",
+        "phone_country": "IN",
+        "official_phone": "9876543210",
+        "hr_email": "hr@abctech.com",
+        "payroll_email": "payroll@abctech.com"
+      },
+      "registered_address": {
+        "address_line1": "123 Main Road",
+        "address_line2": "Technology Park",
+        "country": "IN",
+        "state": "Tamil Nadu",
+        "city": "Chennai",
+        "postal_code": "600001",
+        "district": "Chennai",
+        "landmark": "Near Central Station"
+      },
+      "corporate_address": {
+        "same_as_registered": true
+      },
+      "effective_dates": {
+        "effective_from": "16-11-2026",
+        "effective_to": ""
+      },
+      "default_entity": false,
+      "statutory_registration": {
+    "type": "IN_PAN",
+    "number": "ABCDE1234F",
+    "effective_from": "today"
+  }
+    }
+
+  ]
+}
