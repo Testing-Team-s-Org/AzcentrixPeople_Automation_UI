@@ -114,8 +114,5 @@ class LegalEntities:
         ).click()
 
     def verify_form_visible(self):
-        expect(
-            self.page.get_by_role("button", name="Create legal entity"
-            )
-        ).to_be_visible()
+        expect(self.page.get_by_role("button", name="Create legal entity")).to_be_visible()
 
