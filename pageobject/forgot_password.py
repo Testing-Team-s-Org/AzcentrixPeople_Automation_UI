@@ -1,5 +1,3 @@
-import re
-
 from playwright.sync_api import expect
 
 
@@ -17,8 +15,9 @@ class ForgotPasswordPage:
         self.success_message = self.page.locator(".login .alert--success[role='status']")
 
     def verify_page_loaded(self):
-        expect(self.page).to_have_url(re.compile(r"/company/forgot-password(\?.*)?$"))
+        # "Reset your password" header confirms the Forgot password page opened
         expect(self.title).to_be_visible()
+        expect(self.title).to_have_text("Reset your password")
 
     def request_reset(self, company, username):
         self.company_code.fill(company)

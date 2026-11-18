@@ -1,5 +1,3 @@
-import re
-
 from playwright.sync_api import expect
 
 
@@ -18,9 +16,6 @@ class LoginPage:
 
         # Page-level alert shown above the form, e.g. "Invalid company or login credentials."
         self.form_alert = self.page.locator(".login > .alert[role='alert']")
-
-    # Login page URL, allowing an optional query string such as ?next=...
-    LOGIN_URL = re.compile(r"/login(\?.*)?$")
 
     def signIn(self, company, username, password):
         self.fill_credentials(company, username, password)
@@ -62,10 +57,11 @@ class LoginPage:
         expect(self.form_alert).to_have_text(expected_message)
 
     def verify_login_page(self):
-        expect(self.page).to_have_url(self.LOGIN_URL)
+        # Login form is still shown
+        expect(self.company_code).to_be_visible()
         expect(self.sign_in_button).to_be_visible()
 
     def verify_login_success(self):
-        # Leaving /login and seeing the main menu means the session is active
-        expect(self.page).not_to_have_url(self.LOGIN_URL, timeout=15000)
+        # Login form is gone and the main menu is shown, so the session is active
+        expect(self.sign_in_button).to_be_hidden(timeout=15000)
         expect(self.page.get_by_role("link", name="Organization", exact=True)).to_be_visible(timeout=15000)
