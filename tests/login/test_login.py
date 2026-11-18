@@ -26,3 +26,10 @@ def test_valid_message_displayed(playwright:Playwright,browserInstance):
     login = LoginPage(browserInstance)
     login.valid_Message()
 
+
+def test_forgot_password(page: Page, browserInstance, credentials):
+    code = credentials["companyCode"]
+    userName = credentials["userName"]
+
+    forgot = LoginPage(browserInstance)
+    forgot.forgot_password(code, userName)
