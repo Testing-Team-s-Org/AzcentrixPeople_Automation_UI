@@ -36,7 +36,6 @@ class LoginPage:
         # Verify Password validation
         expect(self.field_error("password")).to_have_text("Enter your password.")
 
-
         print("PASS: All required field validation messages displayed.")
 
 
