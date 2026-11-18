@@ -20,7 +20,7 @@ def valid_credentials(login_data):
     """Valid login from Login-Credential.json."""
     return login_data["superadmin"]
 
-
+@pytest.mark.smoke
 def test_logins(browserInstance, valid_credentials):
     code = valid_credentials["companyCode"]
     userName = valid_credentials["userName"]
