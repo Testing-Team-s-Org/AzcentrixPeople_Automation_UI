@@ -18,3 +18,4 @@ def test_logins(page: Page, browserInstance, credentials):
 def test_valid_message_displayed(playwright:Playwright,browserInstance):
     login = LoginPage(browserInstance)
     login.valid_Message()
+
