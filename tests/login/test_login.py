@@ -1,4 +1,4 @@
-from playwright.sync_api import Page
+from playwright.sync_api import Page, Playwright
 
 from pageobject.login import LoginPage
 
@@ -14,6 +14,7 @@ def test_logins(page: Page, browserInstance, credentials):
     login = LoginPage(browserInstance)
     login.signIn(code, userName, password)
 
-    #navigate
-    navi = NavigationPage(browserInstance)
-    navi.legalentities()
+
+def test_valid_message_displayed(playwright:Playwright,browserInstance):
+    login = LoginPage(browserInstance)
+    login.valid_Message()
