@@ -1,4 +1,3 @@
-
 import os
 import re
 from datetime import datetime
@@ -14,6 +13,9 @@ REPORTS_DIR = PROJECT_ROOT / "reports"
 
 # Load secrets from <project>/.env into os.environ (no-op if the file is missing)
 load_dotenv(PROJECT_ROOT / ".env")
+
+# Always run without the Playwright Inspector, even if PWDEBUG=1 is set in the terminal
+os.environ["PWDEBUG"] = "0"
 
 # Filled in by pytest_configure from the command line; read by the report hooks below
 REPORT_INFO = {
@@ -47,7 +49,7 @@ def credentials():
 
 
 def pytest_addoption(parser):
-    parser.addoption("--browser_name",action="store", default="chrome", help="Browser selection: chrome, edge, firefox")
+    parser.addoption("--browser_name",action="store", default="chrome", help="Browser selection: chrome, edge, firefox, webkit")
 
     parser.addoption("--url_name", action="store", default="https://103.110.236.187:8822/login",help="Server URL selection")
 
@@ -59,13 +61,17 @@ def browserInstance(playwright, request):
     url_name = request.config.getoption("--url_name")
 
     if browser_name == "chrome":
-        browser = playwright.chromium.launch(headless=False)
+        # Use the installed Google Chrome; Playwright's bundled Chromium crashes in headed mode on this machine
+        browser = playwright.chromium.launch(channel="chrome", headless=False)
 
     elif browser_name == "edge":
         browser = playwright.chromium.launch(channel="msedge",headless=False)
 
     elif browser_name == "firefox":
         browser = playwright.firefox.launch(headless=False)
+
+    elif browser_name == "webkit":
+        browser = playwright.webkit.launch(headless=False)
 
     else:
         raise ValueError(f"Unsupported browser: {browser_name}")
