@@ -1,41 +1,45 @@
 # Playwright UI Automation (Python)
 
-End-to-end UI tests for the company setup portal, written with **Playwright for Python** and run with **pytest**. Tests drive a real browser (Chrome, Edge or Firefox), log in, create a legal entity, and verify what the application shows.
+End-to-end UI tests for the company setup portal, written with **Playwright for Python** and run with **pytest**. Tests drive a real browser, log in, maintain the company profile and legal entities, and verify what the application shows.
 
 ## Project structure
 
 ```
 Playwright/
-├── .env                      # Login secrets (NOT committed - see below)
+├── .env                      # Login secrets (NOT committed - see Setup)
 ├── .env.example              # Empty template for .env
-├── pytest.ini                # pytest settings (pythonpath = project root)
+├── .github/workflows/
+│   └── ui-tests.yml          # CI: runs the UI tests on push / pull request / manual trigger
+├── main.py                   # PyCharm template script (not used by the tests)
+├── pytest.ini                # pytest settings, markers, default options
 ├── requirements.txt          # Python dependencies
 ├── data/
+│   ├── Company_profile.json  # Test data for the company profile save + verify
 │   ├── Legal_entities.json   # Test data for legal entity creation
-│   └── Login-Credential.json # Login test data: valid credentials, invalid password, expected messages
+│   └── Login-Credential.json # Not read by any test at present
 ├── reports/                  # Generated HTML test reports (created on first run)
-│   ├── Legal_Entities_report.html        # single test file
-│   ├── automation_report.html            # whole suite, no marker
-│   └── automation_report_smoke.html      # whole suite with -m smoke
 ├── pageobject/               # Page Object Model - one class per page
-│   ├── login.py              # Company login page (sign in, validation, Remember me)
-│   ├── forgot_password.py    # Reset password page
-│   ├── navigation/navigation_page.py
+│   ├── login.py              # Company login page (sign in, validation, forgot password)
+│   ├── navigation/navigation_page.py       # Side menu navigation
+│   ├── company_profile/company_profile.py  # Fill, save and verify the company profile
 │   └── legal_entities/
 │       ├── legal_entities.py          # Create / fill / submit the form
 │       └── legal_entities_verify.py   # Verify the created entity
 └── tests/
-    ├── conftest.py           # Shared fixtures and command-line options
-    ├── login/test_login.py
-    └── legal-entities/test_Legal_Entities.py
+    ├── conftest.py           # Shared fixtures, command-line options, report naming
+    ├── login/
+    │   └── test_login.py
+    └── organisation/
+        ├── test_company_profile.py
+        └── test_Legal_Entities.py
 ```
 
 ## How it works
 
 - **Page objects** (`pageobject/`) hold the locators and actions for each screen. Tests call methods such as `signIn()` or `fill_legal_entity()` and never touch selectors directly.
-- **Test data** lives in `data/*.json`. The legal entity test reads its input from there.
-- **Credentials:** the legal entity test reads them from `.env`. The login tests (`tests/login/`) read them from `data/Login-Credential.json`, which also holds the invalid password and the expected validation messages.
-- **Unique entity codes:** each run appends a timestamp to the base code in the JSON (`IND` becomes e.g. `IND261117123807`), so repeated runs don't collide. The code is read back from the input box, and the verify step checks that exact value.
+- **Test data** lives in `data/*.json`. The company profile and legal entity tests read their input from there, via the `data_dir` fixture.
+- **Credentials:** every test that logs in gets them from `.env` through the `credentials` fixture.
+- **Unique entity codes:** each legal entity run appends a timestamp to the base code in the JSON (`IND` becomes e.g. `IND261117123807`), so repeated runs don't collide. The code is read back from the input box, and the verify step checks that exact value.
 
 ## Setup
 
@@ -52,6 +56,8 @@ Playwright/
    ```bat
    python -m playwright install chromium firefox
    ```
+
+   `chrome` and `edge` run the Google Chrome and Microsoft Edge installed on the machine, so those two must be installed too.
 
 3. **Credentials** - copy the template and fill in real values:
 
@@ -73,28 +79,48 @@ Run from the project root:
 
 ```bat
 :: All tests on Chrome (default browser)
-python -m pytest tests -s --browser_name=chrome
+python -m pytest tests --browser_name=chrome
+
+:: One folder
+python -m pytest tests/organisation --browser_name=chrome
 
 :: One test file
-python -m pytest tests/legal-entities/test_Legal_Entities.py -s --browser_name=chrome
+python -m pytest tests/organisation/test_Legal_Entities.py --browser_name=chrome
 
 :: Firefox
-python -m pytest tests/legal-entities/test_Legal_Entities.py -s --browser_name=firefox
+python -m pytest tests/organisation/test_Legal_Entities.py --browser_name=firefox
 ```
 
 | Option | Default | Values | Purpose |
 |---|---|---|---|
-| `--browser_name` | `chrome` | `chrome`, `edge`, `firefox` | Browser to launch |
+| `--browser_name` | `chrome` | `chrome`, `edge`, `firefox`, `webkit` | Browser to launch |
 | `--url_name` | `https://103.110.236.187:8822/login` | any URL | Application login page |
 
-`-s` shows `print` output, such as the generated entity code.
+`pytest.ini` already adds `-v -s`, so `print` output (such as the generated entity code) is shown on every run.
 
-Run by marker (tests are tagged `smoke` or `regression`):
+### Run by marker
+
+Tests are tagged `smoke` (quick critical path) or `regression` (full coverage):
 
 ```bat
 python -m pytest tests -m smoke --browser_name=chrome
 python -m pytest tests -m regression --browser_name=chrome
 ```
+
+The company profile and legal entity tests carry both markers. The login tests carry no `smoke` or `regression` marker, so `-m smoke` and `-m regression` do not run them.
+
+### Parallel run (optional)
+
+`pytest-xdist` is installed. Tests marked `parallel` can run side by side:
+
+```bat
+python -m pytest tests/login -n 2 --dist loadgroup
+```
+
+- `@pytest.mark.parallel` marks a test as safe to run in parallel.
+- `@pytest.mark.xdist_group("login")` keeps every test in the same group on one worker, in file order.
+
+Only the two login tests that have these markers are safe to run in parallel. The CI workflow does not use `-n`.
 
 ## Reports
 
@@ -102,10 +128,12 @@ Every run writes an HTML report to `reports/`. The file name depends on what you
 
 | Command | Report file |
 |---|---|
-| one test file, e.g. `tests/legal-entities/test_Legal_Entities.py` | `reports/Legal_Entities_report.html` |
+| one test file, e.g. `tests/organisation/test_company_profile.py` | `reports/company_profile_report.html` |
+| one test file, e.g. `tests/organisation/test_Legal_Entities.py` | `reports/Legal_Entities_report.html` |
 | one folder, e.g. `tests/login` | `reports/login_report.html` |
+| one folder with a marker, e.g. `tests/organisation -m smoke` | `reports/organisation_smoke_report.html` |
 | whole suite, no marker | `reports/automation_report.html` |
-| whole suite with `-m smoke` / `-m regression` | `reports/automation_report_smoke.html` / `..._regression.html` |
+| whole suite with `-m smoke` / `-m regression` | `reports/automation_report_smoke.html` / `reports/automation_report_regression.html` |
 
 Open the file in any browser. Its heading, module, test file, browser and marker are taken from the command you ran. To write to a specific file, pass `--html=reports/<name>.html` yourself and it is used instead.
 
@@ -125,9 +153,20 @@ def test_example(browserInstance, credentials, data_dir):
         ...
 ```
 
-## Test flow: create and verify a legal entity
+## Test flow: company profile (`tests/organisation/test_company_profile.py`)
 
-`test_create_legal_entity` runs these steps:
+`test_save_company_profile` (markers `smoke`, `regression`) runs these steps:
+
+1. Load the first entry of `data/Company_profile.json`.
+2. Log in with the `credentials` fixture.
+3. Navigate to **Organization > Company Setup > Company Profile**.
+4. Check the page loaded and the company code is disabled, fill the form, and save.
+5. Check the **Company profile saved.** message and the Complete badge.
+6. Reload the page and compare every saved value with the JSON.
+
+## Test flow: create and verify a legal entity (`tests/organisation/test_Legal_Entities.py`)
+
+`test_create_legal_entity` (markers `smoke`, `regression`) runs these steps:
 
 1. Log in with the `credentials` fixture.
 2. Navigate to **Legal Entities**.
@@ -137,22 +176,30 @@ def test_example(browserInstance, credentials, data_dir):
 
 ## Test flow: login (`tests/login/test_login.py`)
 
-| Test | Steps |
-|---|---|
-| `test_logins` | Sign in with valid credentials, check the login worked, open **Legal Entities**. |
-| `test_login_validation_errors` | Click **Sign In** with empty fields and check each field's required message; then sign in with a wrong password and check *Invalid company or login credentials.* |
-| `test_forgot_password_and_remember_me_login` | Request a password reset, check the success message, go **Back to company login**, then sign in with **Remember me** checked. This sends a real reset email to the account on every run. |
+| Test | Marker | Steps |
+|---|---|---|
+| `test_logins` | `parallel`, group `login` | Sign in with the `.env` credentials. |
+| `test_valid_message_displayed` | `parallel`, group `login` | Click **Sign In** with empty fields and check each field's required message (`Enter your company code.`, `Enter your Login ID.`, `Enter your password.`). |
+| `test_forgot_password` | none | Open **Forgot password?**, request a reset for the `.env` account, check the success message, then go **Back to company login**. This sends a real reset email to the account on every run. |
+
+## CI (`.github/workflows/ui-tests.yml`)
+
+- **On push and pull request** to `main` or `master`: runs the `smoke` tests on Chrome.
+- **Manual run** (`workflow_dispatch`): choose the marker (`smoke`, `regression`, `all`) and the browser (`chrome`, `firefox`).
+- Credentials come from repository secrets `LOGIN_COMPANY_CODE`, `LOGIN_USERNAME` and `LOGIN_PASSWORD`. No `.env` file is needed on the runner.
+- The HTML reports in `reports/` are uploaded as a workflow artifact, kept for 14 days.
 
 ## Adding a new test
 
-1. Put its input data in `data/` if it needs any.
+1. Put its input data in `data/` if it needs any, and load it through the `data_dir` fixture.
 2. Add locators and actions to a page object in `pageobject/`.
-3. Create `tests/<area>/test_<name>.py`, and take `browserInstance`, `credentials` or `data_dir` as arguments as needed.
+3. Create `tests/<area>/test_<name>.py`, take `browserInstance`, `credentials` or `data_dir` as arguments as needed, and tag it with `smoke`, `regression` or both.
 
 ## Troubleshooting
 
 - **`Missing login values in .env`** - the `.env` file is missing or a key is empty. Check the file is in the project root.
 - **`Executable doesn't exist` for a browser** - run `python -m playwright install <browser>`.
+- **Browser fails to launch with `chrome` or `edge`** - these use the installed browser. Install Google Chrome or Microsoft Edge, or use `--browser_name=firefox`.
 - **Click times out or "intercepts pointer events"** - an element is hidden under the modal or below the fold. Scroll it into view first (see `select_effective_date`).
 - **Locator or strict-mode errors** - a second dialog or element matches the same role and name. Narrow the locator with a name or a container.
 - **`Page.locator() got an unexpected keyword argument 'text'`** - use `has_text=` in Playwright locators.

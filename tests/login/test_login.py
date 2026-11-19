@@ -1,11 +1,11 @@
 # pytest "tests/login/test_login.py::test_logins" "tests/login/test_login.py::test_valid_message_displayed" -n 2 --dist loadgroup
-#python -m pytest tests/login/test_login.py -s
+#python -m pytest tests/login/test_login.py -s -n 4 ( 4 workers)
+#
 import pytest
 from playwright.sync_api import Page, Playwright
 
 from pageobject.login import LoginPage
 
-from pageobject.navigation.navigation_page import NavigationPage
 
 
 @pytest.mark.parallel
