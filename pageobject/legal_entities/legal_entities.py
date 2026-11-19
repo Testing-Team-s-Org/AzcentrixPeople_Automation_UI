@@ -49,7 +49,7 @@ class LegalEntities:
         self.page.get_by_role("textbox", name="Short name").fill(data["short_name"])
         #registration number
         self.page.get_by_role("textbox", name="Registration number").fill(data["registration_number"])
-        #
+        #basic information
         section = self.page.locator(".form-section").filter(has=self.page.get_by_role(
                 "heading", name="Basic information"))
 

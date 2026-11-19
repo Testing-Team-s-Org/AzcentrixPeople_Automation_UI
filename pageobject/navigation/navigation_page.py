@@ -17,3 +17,9 @@ class NavigationPage:
         self.companysetup()
         legal_entities =self.page.get_by_role("link",name='Legal Entities', exact=True)
         legal_entities.click()
+
+    def companyprofile(self):
+        self.orgainsation()
+        self.companysetup()
+        company_profile = self.page.get_by_role("link", name="Company Profile", exact=True)
+        company_profile.click()

@@ -1,0 +1,62 @@
+{
+  "company_profile": [
+    {
+      "test_case": "TC_CP_001",
+      "description": "Update company profile with valid details and save",
+      "basic_information": {
+        "company_name": "ABC Technologies Private Limited",
+        "display_name": "ABC Tech",
+        "legal_name": "ABC Technologies Private Limited",
+        "company_type": "PRIVATE_LIMITED",
+        "industry": "INFORMATION_TECHNOLOGY",
+        "registration_number": "REG123456",
+        "incorporation_date": "today",
+        "website": "https://www.abctech.com"
+      },
+      "localization": {
+        "country": "IN",
+        "currency": "INR",
+        "language": "en",
+        "timezone": "Asia/Kolkata",
+        "date_format": "DD-MM-YYYY",
+        "number_format": "INDIAN",
+        "financial_year_month": "4",
+        "financial_year_day": "1"
+      },
+      "contact_information": {
+        "official_email": "info@abctech.com",
+        "official_phone": "+919876543210",
+        "alternate_phone": "+919876543211",
+        "hr_email": "hr@abctech.com",
+        "payroll_email": "payroll@abctech.com",
+        "support_email": "support@abctech.com"
+      },
+      "registered_address": {
+        "address_line1": "123 Main Road",
+        "address_line2": "Technology Park",
+        "country": "IN",
+        "state": "Tamil Nadu",
+        "city": "Chennai",
+        "postal_code": "600001",
+        "district": "Chennai",
+        "landmark": "Near Central Station"
+      },
+      "corporate_address": {
+        "same_as_registered": false,
+        "address_line1": "456 Business Avenue",
+        "address_line2": "Corporate Tower",
+        "country": "IN",
+        "state": "Karnataka",
+        "city": "Bengaluru",
+        "postal_code": "560001",
+        "district": "Bengaluru Urban",
+        "landmark": "Near MG Road Metro"
+      },
+      "expected": {
+        "company_code_disabled": true,
+        "toast": "Company profile saved.",
+        "status_badge": "Complete"
+      }
+    }
+  ]
+}
