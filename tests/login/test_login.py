@@ -6,7 +6,6 @@ from playwright.sync_api import Page, Playwright
 
 from pageobject.login import LoginPage
 
-from pageobject.navigation.navigation_page import NavigationPage
 
 
 @pytest.mark.parallel

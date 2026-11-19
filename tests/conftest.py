@@ -59,7 +59,7 @@ def browserInstance(playwright, request):
     url_name = request.config.getoption("--url_name")
 
     if browser_name == "chrome":
-        browser = playwright.chromium.launch(headless=False)
+        browser = playwright.chromium.launch(channel ="chrome",headless=False)
 
     elif browser_name == "edge":
         browser = playwright.chromium.launch(channel="msedge",headless=False)
