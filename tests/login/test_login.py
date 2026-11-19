@@ -1,10 +1,15 @@
-from playwright.sync_api import Page
+# pytest "tests/login/test_login.py::test_logins" "tests/login/test_login.py::test_valid_message_displayed" -n 2 --dist loadgroup
+#python -m pytest tests/login/test_login.py -s
+import pytest
+from playwright.sync_api import Page, Playwright
 
 from pageobject.login import LoginPage
 
 from pageobject.navigation.navigation_page import NavigationPage
 
 
+@pytest.mark.parallel
+@pytest.mark.xdist_group("login")
 def test_logins(page: Page, browserInstance, credentials):
     # credentials come from .env via the conftest.py fixture
     code = credentials["companyCode"]
@@ -14,6 +19,17 @@ def test_logins(page: Page, browserInstance, credentials):
     login = LoginPage(browserInstance)
     login.signIn(code, userName, password)
 
-    #navigate
-    navi = NavigationPage(browserInstance)
-    navi.legalentities()
+
+@pytest.mark.parallel
+@pytest.mark.xdist_group("login")
+def test_valid_message_displayed(playwright:Playwright,browserInstance):
+    login = LoginPage(browserInstance)
+    login.valid_Message()
+
+
+def test_forgot_password(page: Page, browserInstance, credentials):
+    code = credentials["companyCode"]
+    userName = credentials["userName"]
+
+    forgot = LoginPage(browserInstance)
+    forgot.forgot_password(code, userName)
