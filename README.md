@@ -102,7 +102,7 @@ Every run writes an HTML report to `reports/`. The file name depends on what you
 
 | Command | Report file |
 |---|---|
-| one test file, e.g. `tests/legal-entities/test_Legal_Entities.py` | `reports/Legal_Entities_report.html` |
+| one test file, e.g. `tests/organisation/test_Legal_Entities.py` | `reports/Legal_Entities_report.html` |
 | one folder, e.g. `tests/login` | `reports/login_report.html` |
 | whole suite, no marker | `reports/automation_report.html` |
 | whole suite with `-m smoke` / `-m regression` | `reports/automation_report_smoke.html` / `..._regression.html` |
