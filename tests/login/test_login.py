@@ -10,14 +10,12 @@ from pageobject.login import LoginPage
 
 @pytest.mark.parallel
 @pytest.mark.xdist_group("login")
-def test_logins(page: Page, browserInstance, credentials):
-    # credentials come from .env via the conftest.py fixture
-    code = credentials["companyCode"]
-    userName = credentials["userName"]
-    password = credentials["password"]
-
+def test_logins(page: Page, browserInstance, admin_one):
+    # admin_one comes from .env (selected environment) via the conftest.py fixture
     login = LoginPage(browserInstance)
-    login.signIn(code, userName, password)
+    login.signIn(admin_one.credentials.company_code, admin_one.credentials.username, admin_one.credentials.password)
+
+    login.signOut()
 
 
 @pytest.mark.parallel
@@ -27,9 +25,6 @@ def test_valid_message_displayed(playwright:Playwright,browserInstance):
     login.valid_Message()
 
 
-def test_forgot_password(page: Page, browserInstance, credentials):
-    code = credentials["companyCode"]
-    userName = credentials["userName"]
-
+def test_forgot_password(page: Page, browserInstance, admin_one):
     forgot = LoginPage(browserInstance)
-    forgot.forgot_password(code, userName)
+    forgot.forgot_password(admin_one.credentials.company_code, admin_one.credentials.username)

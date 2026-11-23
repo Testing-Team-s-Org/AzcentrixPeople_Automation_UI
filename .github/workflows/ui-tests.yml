@@ -27,9 +27,11 @@ jobs:
     # Credentials come from repository secrets. conftest.py reads them from the
     # environment, so no .env file is needed on the runner.
     env:
-      LOGIN_COMPANY_CODE: ${{ secrets.LOGIN_COMPANY_CODE }}
-      LOGIN_USERNAME: ${{ secrets.LOGIN_USERNAME }}
-      LOGIN_PASSWORD: ${{ secrets.LOGIN_PASSWORD }}
+      # CI runs against the testing environment (TEST_ENV defaults to testing)
+      TESTING_ADMIN_ONE_COMPANY_CODE: ${{ secrets.LOGIN_COMPANY_CODE }}
+      TESTING_ADMIN_ONE_USERNAME: ${{ secrets.LOGIN_USERNAME }}
+      TESTING_ADMIN_ONE_PASSWORD: ${{ secrets.LOGIN_PASSWORD }}
+      TESTING_URL: http://192.168.11.32:8180/login
       # Empty on push / pull_request (the defaults are applied in the run step)
       INPUT_MARKER: ${{ inputs.marker }}
       INPUT_BROWSER: ${{ inputs.browser }}

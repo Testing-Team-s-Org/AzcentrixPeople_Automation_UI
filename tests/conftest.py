@@ -2,6 +2,7 @@ import os
 import re
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from dotenv import load_dotenv
@@ -34,31 +35,70 @@ def data_dir():
     return path
 
 
-@pytest.fixture(scope="session")
-def credentials():
-    """Login credentials read from .env. Fails early if any value is missing."""
-    values = {
-        "companyCode": os.getenv("LOGIN_COMPANY_CODE"),
-        "userName": os.getenv("LOGIN_USERNAME"),
-        "password": os.getenv("LOGIN_PASSWORD"),
-    }
-    missing = [key for key, value in values.items() if not value]
+# Environments the suite can run against. Each one has its own block in .env:
+#   <ENV>_URL, <ENV>_ADMIN_ONE_{COMPANY_CODE,USERNAME,PASSWORD}, <ENV>_ADMIN_TWO_{...}
+ENVIRONMENTS = ("dev", "testing")
+
+
+def _environment(config):
+    """Environment from --env, else TEST_ENV in .env, else 'testing'."""
+    return (config.getoption("--env") or os.getenv("TEST_ENV") or "testing").lower()
+
+
+def _env_value(env, key):
+    """Read one .env value for an environment, e.g. TESTING_URL or DEV_ADMIN_ONE_USERNAME."""
+    return os.getenv(f"{env.upper()}_{key}")
+
+
+def _admin_login(request, admin):
+    """Login for one admin ('ADMIN_ONE' or 'ADMIN_TWO') in the selected environment."""
+    env = _environment(request.config)
+    creds = SimpleNamespace(
+        company_code=_env_value(env, f"{admin}_COMPANY_CODE"),
+        username=_env_value(env, f"{admin}_USERNAME"),
+        password=_env_value(env, f"{admin}_PASSWORD"),
+    )
+    missing = [
+        f"{env.upper()}_{admin}_{name.upper()}"
+        for name, value in vars(creds).items() if not value
+    ]
     if missing:
-        pytest.fail(f"Missing login values in .env: {', '.join(missing)}")
-    return values
+        pytest.fail(f"Missing values in .env: {', '.join(missing)}")
+    return SimpleNamespace(credentials=creds)
+
+
+@pytest.fixture(scope="session")
+def admin_one(request):
+    """Admin 1 login for the selected environment. Fails early if any value is missing.
+
+    Use in a test as:  admin_one.credentials.company_code / .username / .password
+    """
+    return _admin_login(request, "ADMIN_ONE")
+
+
+@pytest.fixture(scope="session")
+def admin_two(request):
+    """Admin 2 login for the selected environment. Same shape as admin_one."""
+    return _admin_login(request, "ADMIN_TWO")
 
 
 def pytest_addoption(parser):
-    parser.addoption("--browser_name",action="store", default="chrome", help="Browser selection: chrome, edge, firefox, webkit")
+    parser.addoption("--browser_name", action="store", default="chrome", help="Browser selection: chrome, edge, firefox, webkit")
 
-    parser.addoption("--url_name", action="store", default="https://103.110.236.187:8822/login",help="Server URL selection")
+    parser.addoption("--env", action="store", default=None, choices=ENVIRONMENTS,
+                     help="Environment to test: dev or testing (default: TEST_ENV in .env, else testing)")
+
+    parser.addoption("--url_name", action="store", default=None,
+                     help="Login URL override. Default: <ENV>_URL from .env")
 
 
 @pytest.fixture
 def browserInstance(playwright, request):
 
     browser_name = request.config.getoption("--browser_name")
-    url_name = request.config.getoption("--url_name")
+    url_name = request.config.getoption("--url_name") or _env_value(_environment(request.config), "URL")
+    if not url_name:
+        pytest.fail(f"No login URL for this environment: set {_environment(request.config).upper()}_URL in .env or pass --url_name")
 
     if browser_name == "chrome":
         # Use the installed Google Chrome; Playwright's bundled Chromium crashes in headed mode on this machine
@@ -160,7 +200,7 @@ def pytest_sessionstart(session):
         "Browser": REPORT_INFO["browser"],
         "Marker": REPORT_INFO["marker"] or "none",
         "Framework": "Python + Playwright + Pytest",
-        "Environment": "QA",
+        "Environment": _environment(session.config).upper(),
         "Executed By": "Automation Team",
     })
 
