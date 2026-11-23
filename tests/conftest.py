@@ -78,6 +78,7 @@ def admin_one(request):
 
 @pytest.fixture(scope="session")
 def admin_two(request):
+
     """Admin 2 login for the selected environment. Same shape as admin_one."""
     return _admin_login(request, "ADMIN_TWO")
 
