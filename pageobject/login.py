@@ -42,7 +42,6 @@ class LoginPage:
       self.verify_success_message()
 
 
-
     def signInButton(self):
         self.sign_in_button.click()
 
