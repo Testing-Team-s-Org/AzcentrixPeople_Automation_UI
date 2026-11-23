@@ -21,6 +21,20 @@ class LoginPage:
         self.page.locator('input[name="password"]').fill(password)
         self.signInButton()
 
+    def signOut(self):
+        # Open account menu
+        account_menu = self.page.locator("button.user-menu__trigger")
+        expect(account_menu).to_be_visible()
+        account_menu.click()
+
+        # Wait for Sign out button and click
+        signout_button = self.page.locator("button.user-menu__signout")
+        expect(signout_button).to_be_visible()
+        signout_button.click()
+
+        expect (self.sign_in_button).to_be_visible()
+
+
     #Validation message assertion
     def valid_Message(self):
         self.signInButton()

@@ -38,7 +38,7 @@ Playwright/
 
 - **Page objects** (`pageobject/`) hold the locators and actions for each screen. Tests call methods such as `signIn()` or `fill_legal_entity()` and never touch selectors directly.
 - **Test data** lives in `data/*.json`. The company profile and legal entity tests read their input from there, via the `data_dir` fixture.
-- **Credentials:** every test that logs in gets them from `.env` through the `credentials` fixture.
+- **Credentials and environments:** every test that logs in takes the `admin_one` fixture and reads `admin_one.credentials.company_code`, `.username` and `.password`. Values come from the block of `.env` for the selected environment (`dev` or `testing`).
 - **Unique entity codes:** each legal entity run appends a timestamp to the base code in the JSON (`IND` becomes e.g. `IND261117123807`), so repeated runs don't collide. The code is read back from the input box, and the verify step checks that exact value.
 
 ## Setup
@@ -66,9 +66,17 @@ Playwright/
    ```
 
    ```env
-   LOGIN_COMPANY_CODE=your-company-code
-   LOGIN_USERNAME=your-user@example.com
-   LOGIN_PASSWORD=your-password
+   TEST_ENV=testing                      # dev | testing
+
+   DEV_URL=https://103.110.236.187:8822/login
+   DEV_ADMIN_ONE_COMPANY_CODE=...
+   DEV_ADMIN_ONE_USERNAME=...
+   DEV_ADMIN_ONE_PASSWORD=...
+
+   TESTING_URL=http://192.168.11.32:8180/login
+   TESTING_ADMIN_ONE_COMPANY_CODE=...
+   TESTING_ADMIN_ONE_USERNAME=...
+   TESTING_ADMIN_ONE_PASSWORD=...
    ```
 
    `.env` is listed in `.gitignore` and must never be committed. If any value is missing, the tests stop with a clear message naming the missing key.
@@ -94,7 +102,10 @@ python -m pytest tests/organisation/test_Legal_Entities.py --browser_name=firefo
 | Option | Default | Values | Purpose |
 |---|---|---|---|
 | `--browser_name` | `chrome` | `chrome`, `edge`, `firefox`, `webkit` | Browser to launch |
-| `--url_name` | `https://103.110.236.187:8822/login` | any URL | Application login page |
+| `--env` | `TEST_ENV` from `.env`, else `testing` | `dev`, `testing` | Environment: picks the URL and admin_one login from `.env` |
+| `--url_name` | `<ENV>_URL` from `.env` | any URL | Login page override |
+
+Examples: `python -m pytest tests --env dev` or `python -m pytest tests --env testing -m smoke`.
 
 `pytest.ini` already adds `-v -s`, so `print` output (such as the generated entity code) is shown on every run.
 
@@ -142,13 +153,13 @@ Open the file in any browser. Its heading, module, test file, browser and marker
 | Fixture | Scope | Provides |
 |---|---|---|
 | `browserInstance` | function | A browser page opened on the login URL, with SSL errors ignored. Closed after the test. |
-| `credentials` | session | `companyCode`, `userName`, `password` loaded from `.env`. Fails if any is empty. |
+| `admin_one` | session | `credentials.company_code`, `.username`, `.password` for the selected environment, loaded from `.env`. Fails if any is empty. |
 | `data_dir` | session | Absolute path to the `data/` folder, so tests can load JSON without relative-path tricks. |
 
 Use them by naming them as test arguments:
 
 ```python
-def test_example(browserInstance, credentials, data_dir):
+def test_example(browserInstance, admin_one, data_dir):
     with open(data_dir / "Legal_entities.json", encoding="utf-8") as f:
         ...
 ```
@@ -158,7 +169,7 @@ def test_example(browserInstance, credentials, data_dir):
 `test_save_company_profile` (markers `smoke`, `regression`) runs these steps:
 
 1. Load the first entry of `data/Company_profile.json`.
-2. Log in with the `credentials` fixture.
+2. Log in with the `admin_one` fixture.
 3. Navigate to **Organization > Company Setup > Company Profile**.
 4. Check the page loaded and the company code is disabled, fill the form, and save.
 5. Check the **Company profile saved.** message and the Complete badge.
@@ -186,7 +197,7 @@ def test_example(browserInstance, credentials, data_dir):
 
 - **On push and pull request** to `main` or `master`: runs the `smoke` tests on Chrome.
 - **Manual run** (`workflow_dispatch`): choose the marker (`smoke`, `regression`, `all`) and the browser (`chrome`, `firefox`).
-- Credentials come from repository secrets `LOGIN_COMPANY_CODE`, `LOGIN_USERNAME` and `LOGIN_PASSWORD`. No `.env` file is needed on the runner.
+- CI runs the `testing` environment. The workflow maps repository secrets `LOGIN_COMPANY_CODE`, `LOGIN_USERNAME` and `LOGIN_PASSWORD` to `TESTING_ADMIN_ONE_*`, and sets `TESTING_URL`. No `.env` file is needed on the runner.
 - The HTML reports in `reports/` are uploaded as a workflow artifact, kept for 14 days.
 
 ## Adding a new test

@@ -11,15 +11,15 @@ from pageobject.legal_entities.legal_entities_verify import LegalEntitiesVerify
 
 @pytest.mark.smoke
 @pytest.mark.regression
-def test_create_legal_entity(browserInstance, credentials, data_dir):
+def test_create_legal_entity(browserInstance, admin_one, data_dir):
 
     # Test data comes from the data/ folder via the data_dir fixture
     with open(data_dir / "Legal_entities.json", "r", encoding="utf-8") as f:
         entity_data = json.load(f)["legal_entities"][0]
 
-    # Step 1 - Login (credentials from .env)
+    # Step 1 - Login (admin_one from .env)
     login = LoginPage(browserInstance)
-    login.signIn(credentials["companyCode"], credentials["userName"], credentials["password"])
+    login.signIn(admin_one.credentials.company_code, admin_one.credentials.username, admin_one.credentials.password)
 
     # Step 2 - Navigate
     navi = NavigationPage(browserInstance)

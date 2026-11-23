@@ -9,15 +9,15 @@ from pageobject.company_profile.company_profile import CompanyProfile
 
 @pytest.mark.smoke
 @pytest.mark.regression
-def test_save_company_profile(browserInstance, credentials, data_dir):
+def test_save_company_profile(browserInstance, admin_one, data_dir):
 
     # Load the test data from data/Company_profile.json
     with open(data_dir / "Company_profile.json", "r", encoding="utf-8") as f:
         profile_data = json.load(f)["company_profile"][0]
 
-    # Step 1 - Login (credentials come from .env)
+    # Step 1 - Login (admin_one comes from .env)
     login = LoginPage(browserInstance)
-    login.signIn(credentials["companyCode"], credentials["userName"], credentials["password"])
+    login.signIn(admin_one.credentials.company_code, admin_one.credentials.username, admin_one.credentials.password)
 
     # Step 2 - Navigate: Organization > Company Setup > Company Profile
     navi = NavigationPage(browserInstance)
